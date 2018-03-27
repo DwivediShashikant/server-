@@ -16,125 +16,112 @@ presenceService.use(bodyParser.json());
 presenceService.use(bodyParser.urlencoded({ extended: false }));
 
 presenceService.post('/patientslist', function(req, res, next) {
-
     let presencePatients;
     let fhirPatients;
     let hospitalID = req.body.hospitalID;
     let fhirReqObject = req;
-    let patientsCommonInFhirAndPresence = new Array();
-    let patientsFilterByHospitalId = new Array();
-    let patientsAllotedBedInHospital = new Array();
-    let patientsInDeaprtment = new Array();
 
     fhirReqObject.method = 'GET';
     req.params.id = hospitalID;
     req.method = 'GET';
 
-    const getPresencePatient = async() =>{
-        return common.makeHttpRequest(req,'patient/all/hospital/',req.user,res, next)
-        .then( (presenceData)=> {
-           return presenceData;
-        }).catch(function(err) {
-            console.log('error');
-        });
+    function getPresencePatient(){
+        return common.makeHttpRequest(req,'patient/all/hospital/',req.user,res, next);
     }
 
-    const getFhirPatient = async() =>{
-        return patientProcessor.getAllPatients(req)
-        .then((fhirData) => {
-            return fhirData;
-        }).catch((error)=>{
-            res.status(500);
-            res.send({
-                status : 500,
-                statusText : error
-            });
-        });
+    function getFhirPatient(){
+        return patientProcessor.getAllPatients(req);
     }
 
-    const getHospitalDetail = async() => {
-        return common.makeHttpRequest(req,'summaryreport/hospital/',req.user,res, next)
-        .then( (hospital) => {
-            console.log('**hospital',hospital);
-        });
+    function getHospitalDetail(){
+        return common.makeHttpRequest(req,'summaryreport/hospital/',req.user,res, next);
     }
 
-    const getAllBedInHospital = async() => {
-        return common.makeHttpRequest(req,'bed/all/hospital/',req.user,res, next)
-        .then( (beds) => {
-            console.log('**beds',beds);
-            return beds;
-        });
+    function getAllBedInHospital(){
+        return common.makeHttpRequest(req,'bed/all/hospital/',req.user,res, next);
     }
 
-    const getAllDepartmentInHospital = async() => {
-        return common.makeHttpRequest(req,'dept/all/hospital/',req.user,res, next)
-        .then( (department) => {
-            console.log('**department',department);
-            return department;
-        });
+    function getAllDepartmentInHospital(){
+        return common.makeHttpRequest(req,'dept/all/hospital/',req.user,res, next);
     }
-    const getPatientList = async()=>{
+    
+    function getPatientList(){
         try{
-            const presencePatient = await getPresencePatient();
-            const fhirPatient = await getFhirPatient();
-            const hospitalDetail = await getHospitalDetail();
-            const bedsInHospital = await getAllBedInHospital();
-            const departmentsInHospital = await getAllDepartmentInHospital();
-
-            var presenceMap = new Map();
-            var fhirMap = new Map();
-            var commonInFhirAndPreMap = new Map();
-            var patientsAllotedBedMap = new Map();
-
-            // creating hasmap for presence patient
-            presencePatient.forEach(patient => {
-                presenceMap.set(patient.id,patient);
+            Promise.all([getPresencePatient(), getFhirPatient(), getHospitalDetail(), getAllBedInHospital(), getAllDepartmentInHospital()])
+            .then( (responses) => {
+                res.send(patients(responses));
+            },
+            (err) => {
+                console.log('Handling error:'+err);
+                res.send(err);
             });
-
-            //searching patient common in presence patient and fhir patient, total complexity = m+n, where m = size of presencePatient and n = size of fhirPatient
-            fhirPatient.forEach(patient => {
-                if( presenceMap.has(patient.pid) ){
-                    patientsCommonInFhirAndPresence.push(presenceMap.get(patient.pid));
-                }
-            });
-
-            //searching patients , who are alloted beds in the hospital on the basis of bedId
-            patientsCommonInFhirAndPresence.forEach( patient => {
-                commonInFhirAndPreMap.set(patient.bedId, patient);
-            });
-
-            bedsInHospital.forEach( bed => {
-                if(commonInFhirAndPreMap.has(bed.id)){
-                    var data = commonInFhirAndPreMap.get(bed.id);
-                    data.bedName = bed.name;
-                    data.cameraId = bed.cameraId;
-
-                    patientsAllotedBedInHospital.push(data);
-                }
-            });
-
-            patientsAllotedBedInHospital.forEach( patient => {
-                patientsAllotedBedMap.set(patient.icuId, patient);
-            });
-
-            departmentsInHospital.forEach( department => {
-                if(patientsAllotedBedMap.has(department.id)){
-                    var data = patientsAllotedBedMap.get(department.id);
-                    data.departmentName = department.name;
-                    data.departmentType = department.type;
-
-                    patientsInDeaprtment.push(data);
-                }
-            });
-            res.send(patientsInDeaprtment);
         }catch(err){
-            console.log('error in getting presence patient'); 
+           res.send('Error:'+err);
         }
     }
 
     getPatientList();
 });
+
+function patients(fullResponse){
+
+    let patientsCommonInFhirAndPresence = new Array();
+    let patientsFilterByHospitalId = new Array();
+    let patientsAllotedBedInHospital = new Array();
+    let patientsInDeaprtment = new Array();
+
+    console.log('**after promise has resolved', fullResponse);
+    var presenceMap = new Map();
+    var fhirMap = new Map();
+    var commonInFhirAndPreMap = new Map();
+    var patientsAllotedBedMap = new Map();
+
+    // creating hasmap for presence patient
+    var presencePatient  = fullResponse[0];
+    presencePatient.forEach(patient => {
+        presenceMap.set(patient.id,patient);
+    });
+
+    //searching patient common in presence patient and fhir patient, total complexity = m+n, where m = size of presencePatient and n = size of fhirPatient
+    var fhirPatient = fullResponse[1];
+    fhirPatient.forEach(patient => {
+        if( presenceMap.has(patient.pid) ){
+            patientsCommonInFhirAndPresence.push(presenceMap.get(patient.pid));
+        }
+    });
+
+    //searching patients , who are alloted beds in the hospital on the basis of bedId
+    patientsCommonInFhirAndPresence.forEach( patient => {
+        commonInFhirAndPreMap.set(patient.bedId, patient);
+    });
+
+    var  bedsInHospital = fullResponse[3];
+    bedsInHospital.forEach( bed => {
+        if(commonInFhirAndPreMap.has(bed.id)){
+            var data = commonInFhirAndPreMap.get(bed.id);
+            data.bedName = bed.name;
+            data.cameraId = bed.cameraId;
+
+            patientsAllotedBedInHospital.push(data);
+        }
+    });
+
+    patientsAllotedBedInHospital.forEach( patient => {
+        patientsAllotedBedMap.set(patient.icuId, patient);
+    });
+
+    var departmentsInHospital = fullResponse[4];
+    departmentsInHospital.forEach( department => {
+        if(patientsAllotedBedMap.has(department.id)){
+            var data = patientsAllotedBedMap.get(department.id);
+            data.departmentName = department.name;
+            data.departmentType = department.type;
+
+            patientsInDeaprtment.push(data);
+        }
+    });
+    return patientsInDeaprtment;
+}
 
 //Hospital services
 presenceService.post('/hospital/:mainOrgId', function(req, res, next) {

@@ -152,7 +152,6 @@ function prepareFhirApiManagerRequest(requestInfo,sessionInfo){
 }
 
 function prepareCommonApiManagerRequest({request,sessionInfo,identifier}){
-  console.log('**In prepareCommonApiManagerRequest');
   var apiUrl;
   if(identifier === 'api' || identifier === 'presence'){
     apiUrl = config.getServicesUrl().iamUrl+config.getTenantConfig(request.headers["x-tennantid"]).presenceServiceUrl;
@@ -165,15 +164,12 @@ function prepareCommonApiManagerRequest({request,sessionInfo,identifier}){
     apiUrl = config.getServicesUrl().iamUrl+config.getTenantConfig(request.headers["x-tennantid"]).meetingServiceUrl;
   }
   return new Promise((resolve, reject) => {
-    console.log('**Ready to return a promise from prepareCommonApiManagerRequest');
+
     let requestTime = moment().tz(appTimeZone);
     let tokenExpiryTime = moment(sessionInfo.tokenExpiryTime).tz(appTimeZone);
-    console.log('**requestTime :',requestTime);
-    console.log('**tokenExpiryTime:',tokenExpiryTime);
     if(requestTime >= tokenExpiryTime ){
          refreshAuthToken(sessionInfo.refreshtoken,request)
          .then((response) => {
-           console.log('**Response',response);
             let decodedJwtToken = JSON.parse(atob(response.id_token.split('.')[1]));
             let value = 'Internal/everyone';
             let userRole = decodedJwtToken.Role.filter(role => role !== 'Internal/everyone')[0];
@@ -223,13 +219,11 @@ function prepareCommonApiManagerRequest({request,sessionInfo,identifier}){
          });
 
     }else{
-      console.log('**Request Time is not greater than Response time');
        request.headers["Authorization"] = "Bearer " + sessionInfo.token;
       let apiManagerRequest = {
                                  "apiUrl" : apiUrl,
                                  "request" : request
                                };
-      console.log('**Resolving apiManagerRequest');
       resolve(apiManagerRequest);
     }
   });

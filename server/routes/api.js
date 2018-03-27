@@ -10,11 +10,8 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 //common function to make http request
 function makeHttpRequest(req,reqPath,sessionInfo,res, next,queryString){
-    console.log('**Making an HttpRequest');
     common.prepareCommonApiManagerRequest({request:req,sessionInfo:sessionInfo,identifier:'api'})
    .then((response) => {
-       console.log('**Response URL',response.apiUrl);
-       console.log('**Reqest Path',reqPath);
       proxy({
               url: response.apiUrl+reqPath,
               timeout: 120000
