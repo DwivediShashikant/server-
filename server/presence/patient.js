@@ -4,9 +4,9 @@ const http = require('request-promise');
 const moment = require('moment-timezone');
 const patientProcessor = require('../fhir/patient');
 const flowSheetProcessor = require('../fhir/flowsheet');
-var relatedPersonProcessor = require('../fhir/related_person');
+const relatedPersonProcessor = require('../fhir/related_person');
 const iCertainPatientApi = require('../icertain/patient');
-var deviceProcessor = require('../fhir/device');
+const deviceProcessor = require('../fhir/device');
 const common = require('../common');
 const config = require('../config');
 const fhirRepoUrl = config.getServicesUrl().fhirRepoUrl;
@@ -53,6 +53,75 @@ function presenceServiceHandler(requestInfo) {
         return new Promise((resolve, reject) => { reject(error) });
     });
 
+}
+// function that returns patients list
+function patients(fullResponse){
+
+    let presencePatient = fullResponse[0].filter( patient => patient.status === 'Admitted');
+    let fhirPatient = fullResponse[1];
+    let  bedsInHospital = fullResponse[3];
+    let departmentsInHospital = fullResponse[4];
+
+    let filteredPatients = new Array();
+
+    presencePatient.forEach( patient => {
+
+        let fhir  = fhirPatient.find((fhir)=>{
+            return ( fhir.pid === patient.id);
+        });
+
+        let beds = bedsInHospital.find( (bed) => {
+            return (bed.id === patient.bedId);
+        });
+
+        let deparmtment = departmentsInHospital.find( (deparmtment) => {
+            return (deparmtment.id === patient.icuId);
+        });
+        
+        let obj = {
+            name : patient.name,
+            dob : patient.dateOfBirth,
+            gender : patient.gender,
+            email : patient.emailId,
+            maritialStatus : patient.maritialStatus,
+            mrn : patient.mrn,
+            contact : patient.phoneNumber,
+            bed : beds.name,
+            deparmtment : deparmtment.name
+        };
+
+        filteredPatients.push(obj);
+    });
+    return filteredPatients;
+}
+
+// function to execuute 5 apis using promise all
+
+function patientsApiCalls(req,res,next){
+   function getPresencePatient(){
+        return common.makeHttpRequest(req,'patient/all/hospital/',req.user,res, next);
+    }
+
+    function getFhirPatient(){
+        return patientProcessor.getAllPatients(req);
+    }
+
+    function getHospitalDetail(){
+        return common.makeHttpRequest(req,'summaryreport/hospital/',req.user,res, next);
+    }
+
+    function getAllBedInHospital(){
+        return common.makeHttpRequest(req,'bed/all/hospital/',req.user,res, next);
+    }
+
+    function getAllDepartmentInHospital(){
+        return common.makeHttpRequest(req,'dept/all/hospital/',req.user,res, next);
+    }
+    
+    function getPatientList(){
+        return Promise.all([getPresencePatient(), getFhirPatient(), getHospitalDetail(), getAllBedInHospital(), getAllDepartmentInHospital()]);
+    }
+    return getPatientList();
 }
 
 function getAllPatientsByHospitalId(hospitalId, request) {
@@ -430,5 +499,7 @@ module.exports = {
   updatePatient : updatePatient,
   getFhirPatientData : getFhirPatientData,
   getFhirPatientDataWithEOC: getFhirPatientDataWithEOC,
-  createHISPatient : createHISPatient
-};
+  createHISPatient : createHISPatient,
+  patients : patients,
+  patientsApiCalls : patientsApiCalls
+};  

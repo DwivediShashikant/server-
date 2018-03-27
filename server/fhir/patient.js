@@ -699,7 +699,6 @@ function updateFhirPatient(patientData,request){
 }
 
 function getAllPatients(request){
-  console.log('fetching fhir data');
     var fhirserviceurl = 'Encounter?status=arrived&_include=Encounter:patient';
     var responseMessage = {"error" : "Failed to get all patients",
                            "errorAction" : "get all patients error"

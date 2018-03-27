@@ -9,119 +9,26 @@ const api = require('./api');
 const common = require('../common');
 const patientProcessor = require('../fhir/patient');
 const proxy = require('express-request-proxy');
-
+const patient = require('../presence/patient');
 //presenceService.use(bodyParser.json());
 
 presenceService.use(bodyParser.json());
 presenceService.use(bodyParser.urlencoded({ extended: false }));
 
 presenceService.post('/patientslist', function(req, res, next) {
-    let presencePatients;
-    let fhirPatients;
     let hospitalID = req.body.hospitalID;
-    let fhirReqObject = req;
-
-    fhirReqObject.method = 'GET';
     req.params.id = hospitalID;
     req.method = 'GET';
-
-    function getPresencePatient(){
-        return common.makeHttpRequest(req,'patient/all/hospital/',req.user,res, next);
-    }
-
-    function getFhirPatient(){
-        return patientProcessor.getAllPatients(req);
-    }
-
-    function getHospitalDetail(){
-        return common.makeHttpRequest(req,'summaryreport/hospital/',req.user,res, next);
-    }
-
-    function getAllBedInHospital(){
-        return common.makeHttpRequest(req,'bed/all/hospital/',req.user,res, next);
-    }
-
-    function getAllDepartmentInHospital(){
-        return common.makeHttpRequest(req,'dept/all/hospital/',req.user,res, next);
-    }
     
-    function getPatientList(){
-        try{
-            Promise.all([getPresencePatient(), getFhirPatient(), getHospitalDetail(), getAllBedInHospital(), getAllDepartmentInHospital()])
-            .then( (responses) => {
-                res.send(patients(responses));
-            },
-            (err) => {
-                console.log('Handling error:'+err);
-                res.send(err);
-            });
-        }catch(err){
-           res.send('Error:'+err);
-        }
-    }
-
-    getPatientList();
+    patient.patientsApiCalls(req, res, next)
+    .then( (responses) => {
+        res.send(patient.patients(responses));
+    },
+    (err) => {
+        console.log('Handling error:'+err);
+        res.send(err);
+    });
 });
-
-function patients(fullResponse){
-
-    let patientsCommonInFhirAndPresence = new Array();
-    let patientsFilterByHospitalId = new Array();
-    let patientsAllotedBedInHospital = new Array();
-    let patientsInDeaprtment = new Array();
-
-    console.log('**after promise has resolved', fullResponse);
-    var presenceMap = new Map();
-    var fhirMap = new Map();
-    var commonInFhirAndPreMap = new Map();
-    var patientsAllotedBedMap = new Map();
-
-    // creating hasmap for presence patient
-    var presencePatient  = fullResponse[0];
-    presencePatient.forEach(patient => {
-        presenceMap.set(patient.id,patient);
-    });
-
-    //searching patient common in presence patient and fhir patient, total complexity = m+n, where m = size of presencePatient and n = size of fhirPatient
-    var fhirPatient = fullResponse[1];
-    fhirPatient.forEach(patient => {
-        if( presenceMap.has(patient.pid) ){
-            patientsCommonInFhirAndPresence.push(presenceMap.get(patient.pid));
-        }
-    });
-
-    //searching patients , who are alloted beds in the hospital on the basis of bedId
-    patientsCommonInFhirAndPresence.forEach( patient => {
-        commonInFhirAndPreMap.set(patient.bedId, patient);
-    });
-
-    var  bedsInHospital = fullResponse[3];
-    bedsInHospital.forEach( bed => {
-        if(commonInFhirAndPreMap.has(bed.id)){
-            var data = commonInFhirAndPreMap.get(bed.id);
-            data.bedName = bed.name;
-            data.cameraId = bed.cameraId;
-
-            patientsAllotedBedInHospital.push(data);
-        }
-    });
-
-    patientsAllotedBedInHospital.forEach( patient => {
-        patientsAllotedBedMap.set(patient.icuId, patient);
-    });
-
-    var departmentsInHospital = fullResponse[4];
-    departmentsInHospital.forEach( department => {
-        if(patientsAllotedBedMap.has(department.id)){
-            var data = patientsAllotedBedMap.get(department.id);
-            data.departmentName = department.name;
-            data.departmentType = department.type;
-
-            patientsInDeaprtment.push(data);
-        }
-    });
-    return patientsInDeaprtment;
-}
 
 //Hospital services
 presenceService.post('/hospital/:mainOrgId', function(req, res, next) {

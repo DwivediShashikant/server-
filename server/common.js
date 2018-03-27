@@ -155,7 +155,6 @@ function prepareCommonApiManagerRequest({request,sessionInfo,identifier}){
   var apiUrl;
   if(identifier === 'api' || identifier === 'presence'){
     apiUrl = config.getServicesUrl().iamUrl+config.getTenantConfig(request.headers["x-tennantid"]).presenceServiceUrl;
-    console.log('**apiUrl: ', apiUrl);
   }else if(identifier === 'fhir'){
     apiUrl = config.getServicesUrl().iamUrl+config.getTenantConfig(request.headers["x-tennantid"]).fhirServiceUrl;
   }else if(identifier === 'iCertain'){
