@@ -448,29 +448,29 @@ function createPatientList(fullResponse){
     let departmentsInHospital = fullResponse[4].body;
     let finalPatientsList = new Array();
 
-    presencePatient.forEach( patient => {
+    presencePatient.forEach( presencePatient => {
 
-        let fhir  = fhirPatient.find((fhir)=>{
-            return ( fhir.pid === patient.id);
+        let patientFhir  = fhirPatient.find((patient)=>{
+            return ( patient.pid === presencePatient.id);
         });
 
-        let beds = bedsInHospital.find( (bed) => {
-            return (bed.id === patient.bedId);
+        let bed = bedsInHospital.find( (bed) => {
+            return (bed.id === presencePatient.bedId);
         });
 
         let deparmtment = departmentsInHospital.find( (deparmtment) => {
-            return (deparmtment.id === patient.icuId);
+            return (deparmtment.id === presencePatient.icuId);
         });
         
         let obj = {
-            name : patient.name,
-            dob : patient.dateOfBirth,
-            gender : patient.gender,
-            email : patient.emailId,
-            maritialStatus : patient.maritialStatus,
-            mrn : patient.mrn,
-            contact : patient.phoneNumber,
-            bed : beds.name,
+            name : presencePatient.name,
+            dob : presencePatient.dateOfBirth,
+            gender : presencePatient.gender,
+            email : presencePatient.emailId,
+            maritialStatus : presencePatient.maritialStatus,
+            mrn : presencePatient.mrn,
+            contact : presencePatient.phoneNumber,
+            bed : bed.name,
             deparmtment : deparmtment.name
         };
 
