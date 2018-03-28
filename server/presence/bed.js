@@ -207,8 +207,20 @@ function deleteBed(bedId, fhirOrgId, request) {
         })
 }
 
+function getBedsByHospitalId(hospitalId, request){
+    let createRequestInfo = {
+        requestMethod: 'GET',
+        requestUrl: 'bed/all/hospital/' + hospitalId,
+        requestData: '',
+        request: request,
+        errorMessage: "Failed to get all pateints by hospital id"
+    };
+    return presenceServiceHandler(createRequestInfo);
+}
+
 module.exports = {
     createBed: createBed,
     updateBed: updateBed,
-    deleteBed: deleteBed
+    deleteBed: deleteBed,
+    getBedsByHospitalId : getBedsByHospitalId
 };

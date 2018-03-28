@@ -20,12 +20,11 @@ presenceService.post('/patientslist', function(req, res, next) {
     req.params.id = hospitalID;
     req.method = 'GET';
     
-    patient.patientsApiCalls(req, res, next)
+    patient.getPatientsList('ff7bf8c5-816f-4106-9fd6-7e79c07d2e1d', req)
     .then( (responses) => {
-        res.send(patient.patients(responses));
+        res.send(responses);
     },
     (err) => {
-        console.log('Handling error:'+err);
         res.send(err);
     });
 });

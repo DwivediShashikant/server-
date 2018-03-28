@@ -7,45 +7,6 @@ const appTimeZone = config.getAppTimeZone();
 const proxy = require('express-request-proxy'); 
 
 let socketIoConnection;
-
-
-//common function to make http request
-function makeHttpRequest(req,reqPath,sessionInfo,res, next,queryString){
-  return prepareCommonApiManagerRequest({request:req,sessionInfo:sessionInfo,identifier:'api'})
- .then((response) => {
-    let hospitalID = response.request.body.hospitalID;
-    let targetUrl = response.apiUrl+reqPath+hospitalID;
-    var options = {
-      method: 'GET',
-      uri: targetUrl,
-      rejectUnauthorized: false,
-      headers: {
-         'Authorization': response.request.headers['Authorization'],
-         'content-type': response.request.headers['content-type'],
-         'x-tennantid': response.request.headers['x-tennantid']
-      },
-      resolveWithFullResponse: true,
-      json: true
-    };
-
-  if(req.requestData){
-    options.body = req.requestData
-  }
-  return new Promise((resolve, reject) => {
-    http(options).then(function(response) {
-        resolve(response.body);
-      })
-      .catch(function(error) {
-        console.log('Error Occured');
-          reject(error);
-      });
-  });
-
- }).catch((error) => {
-     res.status(500).send(error);
- });
-}
-
 function refreshAuthToken(refreshToken, request) {
     let tokenRequestUrl = config.getServicesUrl().iamUrl+"/token";
     let options = {
@@ -241,5 +202,4 @@ module.exports = {
     prepareCommonApiManagerRequest : prepareCommonApiManagerRequest,
     setSocketIoConnection : setSocketIoConnection,
     getSocketIoConnection : getSocketIoConnection,
-    makeHttpRequest : makeHttpRequest
 }

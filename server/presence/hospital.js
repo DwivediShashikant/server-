@@ -298,10 +298,22 @@ function deleteHospital(hospitalId, fhirOrgId, tenantOrgId, request){
   });
 }
 
+function getHospitalbyId(hospitalId,request){
+  let createRequestInfo = {
+    requestMethod: 'GET',
+    requestUrl: 'summaryreport/hospital/' + hospitalId,
+    requestData: '',
+    request: request,
+    errorMessage: "Failed to get all hospital by hospital id"
+  }
+  return presenceServiceHandler(createRequestInfo);
+}
+
 
 module.exports = {
   createHospital : createHospital,
   getFhirOrgData : getFhirOrgData,
   updateHospital : updateHospital,
-  deleteHospital : deleteHospital
+  deleteHospital : deleteHospital,
+  getHospitalbyId : getHospitalbyId
 };

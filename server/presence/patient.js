@@ -9,12 +9,16 @@ const iCertainPatientApi = require('../icertain/patient');
 const deviceProcessor = require('../fhir/device');
 const common = require('../common');
 const config = require('../config');
+const hospitalProcessor =  require('../presence/hospital');
+const bedProcessor = require('../presence/bed');
+
 const fhirRepoUrl = config.getServicesUrl().fhirRepoUrl;
 let orgTimeZone = config.getAppTimeZone();
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 function presenceServiceHandler(requestInfo) {
+    errorMessage: "Failed to get all pateints by hospital id"
     return common.prepareCommonApiManagerRequest({request:requestInfo.request,sessionInfo:requestInfo.request.user,identifier:'presence'})
     .then((response) => {
         let options = {
@@ -55,14 +59,13 @@ function presenceServiceHandler(requestInfo) {
 
 }
 // function that returns patients list
-function patients(fullResponse){
+function createPatientList(fullResponse){
 
-    let presencePatient = fullResponse[0].filter( patient => patient.status === 'Admitted');
+    let presencePatient = fullResponse[0].body.filter( patient => patient.status === 'Admitted');
     let fhirPatient = fullResponse[1];
-    let  bedsInHospital = fullResponse[3];
-    let departmentsInHospital = fullResponse[4];
-
-    let filteredPatients = new Array();
+    let  bedsInHospital = fullResponse[3].body;
+    let departmentsInHospital = fullResponse[4].body;
+    let finalPatientsList = new Array();
 
     presencePatient.forEach( patient => {
 
@@ -90,40 +93,39 @@ function patients(fullResponse){
             deparmtment : deparmtment.name
         };
 
-        filteredPatients.push(obj);
+        finalPatientsList.push(obj);
     });
-    return filteredPatients;
+    return finalPatientsList;
 }
 
 // function to execuute 5 apis using promise all
+function getPatientsList(hospitalId, req){
 
-function patientsApiCalls(req,res,next){
-   function getPresencePatient(){
-        return common.makeHttpRequest(req,'patient/all/hospital/',req.user,res, next);
-    }
-
-    function getFhirPatient(){
-        return patientProcessor.getAllPatients(req);
-    }
-
-    function getHospitalDetail(){
-        return common.makeHttpRequest(req,'summaryreport/hospital/',req.user,res, next);
-    }
-
-    function getAllBedInHospital(){
-        return common.makeHttpRequest(req,'bed/all/hospital/',req.user,res, next);
-    }
-
-    function getAllDepartmentInHospital(){
-        return common.makeHttpRequest(req,'dept/all/hospital/',req.user,res, next);
-    }
+    let getPresencePatient = getAllPatientsByHospitalId(hospitalId,req);
+    let getHospitalDetail = hospitalProcessor.getHospitalbyId(hospitalId,req);
+    let getAllBedInHospital = bedProcessor.getBedsByHospitalId(hospitalId,req);
+    let getAllDepartmentInHospital =  getDepartmentByHospitalId(hospitalId,req);
+    let getFhirPatient =  patientProcessor.getAllPatients(req);
     
-    function getPatientList(){
-        return Promise.all([getPresencePatient(), getFhirPatient(), getHospitalDetail(), getAllBedInHospital(), getAllDepartmentInHospital()]);
-    }
-    return getPatientList();
+    return Promise.all([getPresencePatient, getFhirPatient,getHospitalDetail,getAllBedInHospital,getAllDepartmentInHospital])
+    .then( res => {
+        return Promise.resolve(createPatientList(res));
+    })
+    .catch(err=>{
+        return Promise.reject(err);
+    })
 }
 
+function getDepartmentByHospitalId(hospitalId, request){
+    let createRequestInfo = {
+        requestMethod: 'GET',
+        requestUrl: 'dept/all/hospital/'+ hospitalId,
+        requestData: '',
+        request: request,
+        errorMessage: "Failed to get all pateints by hospital id"
+    };
+    return presenceServiceHandler(createRequestInfo);
+}
 function getAllPatientsByHospitalId(hospitalId, request) {
     let createRequestInfo = {
         requestMethod: 'GET',
@@ -500,6 +502,5 @@ module.exports = {
   getFhirPatientData : getFhirPatientData,
   getFhirPatientDataWithEOC: getFhirPatientDataWithEOC,
   createHISPatient : createHISPatient,
-  patients : patients,
-  patientsApiCalls : patientsApiCalls
+  getPatientsList : getPatientsList,
 };  
