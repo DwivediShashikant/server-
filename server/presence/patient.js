@@ -58,63 +58,7 @@ function presenceServiceHandler(requestInfo) {
     });
 
 }
-// function that returns patients list
-function createPatientList(fullResponse){
 
-    let presencePatient = fullResponse[0].body.filter( patient => patient.status === 'Admitted');
-    let fhirPatient = fullResponse[1];
-    let  bedsInHospital = fullResponse[3].body;
-    let departmentsInHospital = fullResponse[4].body;
-    let finalPatientsList = new Array();
-
-    presencePatient.forEach( patient => {
-
-        let fhir  = fhirPatient.find((fhir)=>{
-            return ( fhir.pid === patient.id);
-        });
-
-        let beds = bedsInHospital.find( (bed) => {
-            return (bed.id === patient.bedId);
-        });
-
-        let deparmtment = departmentsInHospital.find( (deparmtment) => {
-            return (deparmtment.id === patient.icuId);
-        });
-        
-        let obj = {
-            name : patient.name,
-            dob : patient.dateOfBirth,
-            gender : patient.gender,
-            email : patient.emailId,
-            maritialStatus : patient.maritialStatus,
-            mrn : patient.mrn,
-            contact : patient.phoneNumber,
-            bed : beds.name,
-            deparmtment : deparmtment.name
-        };
-
-        finalPatientsList.push(obj);
-    });
-    return finalPatientsList;
-}
-
-// function to execuute 5 apis using promise all
-function getPatientsList(hospitalId, req){
-
-    let getPresencePatient = getAllPatientsByHospitalId(hospitalId,req);
-    let getHospitalDetail = hospitalProcessor.getHospitalbyId(hospitalId,req);
-    let getAllBedInHospital = bedProcessor.getBedsByHospitalId(hospitalId,req);
-    let getAllDepartmentInHospital =  getDepartmentByHospitalId(hospitalId,req);
-    let getFhirPatient =  patientProcessor.getAllPatients(req);
-    
-    return Promise.all([getPresencePatient, getFhirPatient,getHospitalDetail,getAllBedInHospital,getAllDepartmentInHospital])
-    .then( res => {
-        return Promise.resolve(createPatientList(res));
-    })
-    .catch(err=>{
-        return Promise.reject(err);
-    })
-}
 
 function getDepartmentByHospitalId(hospitalId, request){
     let createRequestInfo = {
@@ -494,6 +438,63 @@ function createHISPatient(patientData, fhirOrgId, request){
         .catch((error) => {
             return revertHISPatientDetails({error:error, patientOldData:patientOldData, fhirOrgId:fhirOrgId, patientPresenceId:patientPresenceId, request:request});
         });
+}
+// function that returns patients list
+function createPatientList(fullResponse){
+
+    let presencePatient = fullResponse[0].body.filter( patient => patient.status === 'Admitted');
+    let fhirPatient = fullResponse[1];
+    let  bedsInHospital = fullResponse[3].body;
+    let departmentsInHospital = fullResponse[4].body;
+    let finalPatientsList = new Array();
+
+    presencePatient.forEach( patient => {
+
+        let fhir  = fhirPatient.find((fhir)=>{
+            return ( fhir.pid === patient.id);
+        });
+
+        let beds = bedsInHospital.find( (bed) => {
+            return (bed.id === patient.bedId);
+        });
+
+        let deparmtment = departmentsInHospital.find( (deparmtment) => {
+            return (deparmtment.id === patient.icuId);
+        });
+        
+        let obj = {
+            name : patient.name,
+            dob : patient.dateOfBirth,
+            gender : patient.gender,
+            email : patient.emailId,
+            maritialStatus : patient.maritialStatus,
+            mrn : patient.mrn,
+            contact : patient.phoneNumber,
+            bed : beds.name,
+            deparmtment : deparmtment.name
+        };
+
+        finalPatientsList.push(obj);
+    });
+    return finalPatientsList;
+}
+
+// function to execuute 5 apis using promise all
+function getPatientsList(hospitalId, req){
+
+    let getPresencePatient = getAllPatientsByHospitalId(hospitalId,req);
+    let getHospitalDetail = hospitalProcessor.getHospitalbyId(hospitalId,req);
+    let getAllBedInHospital = bedProcessor.getBedsByHospitalId(hospitalId,req);
+    let getAllDepartmentInHospital =  getDepartmentByHospitalId(hospitalId,req);
+    let getFhirPatient =  patientProcessor.getAllPatients(req);
+    
+    return Promise.all([getPresencePatient, getFhirPatient,getHospitalDetail,getAllBedInHospital,getAllDepartmentInHospital])
+    .then( res => {
+        return Promise.resolve(createPatientList(res));
+    })
+    .catch(err=>{
+        return Promise.reject(err);
+    })
 }
 
 module.exports = {

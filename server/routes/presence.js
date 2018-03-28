@@ -15,20 +15,6 @@ const patient = require('../presence/patient');
 presenceService.use(bodyParser.json());
 presenceService.use(bodyParser.urlencoded({ extended: false }));
 
-presenceService.post('/patientslist', function(req, res, next) {
-    let hospitalID = req.body.hospitalID;
-    req.params.id = hospitalID;
-    req.method = 'GET';
-    
-    patient.getPatientsList('ff7bf8c5-816f-4106-9fd6-7e79c07d2e1d', req)
-    .then( (responses) => {
-        res.send(responses);
-    },
-    (err) => {
-        res.send(err);
-    });
-});
-
 //Hospital services
 presenceService.post('/hospital/:mainOrgId', function(req, res, next) {
     hospitalManager.createHospital(req.body, req.params.mainOrgId, req).then((response) => {
@@ -220,5 +206,20 @@ presenceService.delete('/bed/:bedId/fhirOrgId/:OrgId', function(req, res, next) 
         });
     });
 });
+
+presenceService.post('/patientslist', function(req, res, next) {
+    let hospitalID = req.body.hospitalID;
+    req.params.id = hospitalID;
+    req.method = 'GET';
+    
+    patient.getPatientsList('ff7bf8c5-816f-4106-9fd6-7e79c07d2e1d', req)
+    .then( (responses) => {
+        res.send(responses);
+    },
+    (err) => {
+        res.send(err);
+    });
+});
+
 
 module.exports = presenceService;
