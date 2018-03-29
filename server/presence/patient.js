@@ -11,7 +11,7 @@ const common = require('../common');
 const config = require('../config');
 const hospitalProcessor =  require('../presence/hospital');
 const bedProcessor = require('../presence/bed');
-
+const departmentProcessor =  require('./department');
 const fhirRepoUrl = config.getServicesUrl().fhirRepoUrl;
 let orgTimeZone = config.getAppTimeZone();
 
@@ -59,17 +59,6 @@ function presenceServiceHandler(requestInfo) {
 
 }
 
-
-function getDepartmentByHospitalId(hospitalId, request){
-    let createRequestInfo = {
-        requestMethod: 'GET',
-        requestUrl: 'dept/all/hospital/'+ hospitalId,
-        requestData: '',
-        request: request,
-        errorMessage: "Failed to get all pateints by hospital id"
-    };
-    return presenceServiceHandler(createRequestInfo);
-}
 function getAllPatientsByHospitalId(hospitalId, request) {
     let createRequestInfo = {
         requestMethod: 'GET',
@@ -485,7 +474,7 @@ function getPatientsList(hospitalId, req){
     let getPresencePatient = getAllPatientsByHospitalId(hospitalId,req);
     let getHospitalDetail = hospitalProcessor.getHospitalbyId(hospitalId,req);
     let getAllBedInHospital = bedProcessor.getBedsByHospitalId(hospitalId,req);
-    let getAllDepartmentInHospital =  getDepartmentByHospitalId(hospitalId,req);
+    let getAllDepartmentInHospital =  departmentProcessor.getDepartmentByHospitalId(hospitalId,req);
     let getFhirPatient =  patientProcessor.getAllPatients(req);
     
     return Promise.all([getPresencePatient, getFhirPatient,getHospitalDetail,getAllBedInHospital,getAllDepartmentInHospital])
